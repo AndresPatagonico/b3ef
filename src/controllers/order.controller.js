@@ -1,28 +1,28 @@
-import mongoose from 'mongoose';
-import { OrderModel } from '../models/order.model.js';
-import { logger } from '../utils/logger.js';
+import { OrderService } from '../services/order.service.js';
+
+const orderService = new OrderService();
 
 export class OrderController {
     
     static async getOrders(req, res, next) {
         try {
-            const page = parseInt(req.query.page, 10) || 1;
-            const limit = parseInt(req.query.limit, 10) || 10;
-            const skip = (page - 1) * limit;
+            const rawPage = parseInt(req.query.page, 10) || 1;
+            const rawLimit = parseInt(req.query.limit, 10) || 10;
+            
+            // Sanitización y tope máximo estricto de 50 registros por página
+            const page = Math.max(1, rawPage);
+            const limit = Math.min(Math.max(1, rawLimit), 50);
 
-            const [orders, total] = await Promise.all([
-                OrderModel.find().skip(skip).limit(limit),
-                OrderModel.countDocuments()
-            ]);
+            const result = await orderService.getOrders({ page, limit });
 
             return res.status(200).json({ 
                 status: 'success', 
-                payload: orders,
+                payload: result.docs,
                 pagination: {
-                    total,
-                    page,
-                    totalPages: Math.ceil(total / limit) || 1,
-                    limit
+                    total: result.total,
+                    page: result.page,
+                    totalPages: result.totalPages,
+                    limit: result.limit
                 }
             });
         } catch (error) {
@@ -42,7 +42,7 @@ export class OrderController {
                 });
             }
 
-            const newOrder = await OrderModel.create({
+            const newOrder = await orderService.createOrder({
                 user,
                 products,
                 total_price,
@@ -59,23 +59,7 @@ export class OrderController {
     static async getOrderById(req, res, next) {
         try {
             const { id } = req.params;
-
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                return res.status(400).json({
-                    status: 'error',
-                    error: 'INVALID_ID',
-                    message: 'El ID de pedido provisto no es un ObjectId válido'
-                });
-            }
-
-            const order = await OrderModel.findById(id);
-            if (!order) {
-                return res.status(404).json({
-                    status: 'error',
-                    error: 'ORDER_NOT_FOUND',
-                    message: 'El pedido especificado no existe'
-                });
-            }
+            const order = await orderService.getOrderById(id);
 
             return res.status(200).json({ status: 'success', payload: order });
         } catch (error) {
@@ -97,29 +81,8 @@ export class OrderController {
                 });
             }
 
-            if (!mongoose.Types.ObjectId.isValid(id)) {
-                return res.status(400).json({
-                    status: 'error',
-                    error: 'INVALID_ID',
-                    message: 'El ID de pedido provisto no es un ObjectId válido'
-                });
-            }
-
-            const order = await OrderModel.findByIdAndUpdate(
-                id,
-                { status },
-                { returnDocument: 'after' }
-            );
-
-            if (!order) {
-                return res.status(404).json({
-                    status: 'error',
-                    error: 'ORDER_NOT_FOUND',
-                    message: 'El pedido especificado no existe'
-                });
-            }
-
-            return res.status(200).json({ status: 'success', payload: order });
+            const updatedOrder = await orderService.updateOrderStatus(id, status);
+            return res.status(200).json({ status: 'success', payload: updatedOrder });
         } catch (error) {
             next(error);
         }
@@ -138,41 +101,12 @@ export class OrderController {
                 });
             }
 
-            if (!mongoose.Types.ObjectId.isValid(oid)) {
-                return res.status(400).json({
-                    status: 'error',
-                    error: 'INVALID_ID',
-                    message: 'El ID de pedido provisto no es un ObjectId válido'
-                });
-            }
-
-            const order = await OrderModel.findById(oid);
-            if (!order) {
-                return res.status(404).json({
-                    status: 'error',
-                    error: 'ORDER_NOT_FOUND',
-                    message: 'El pedido especificado no existe'
-                });
-            }
-
-            const newReceipt = {
-                name: file.filename,
-                originalName: file.originalname,
-                reference: file.path,
-                mimeType: file.mimetype,
-                size: file.size,
-                uploadedAt: new Date()
-            };
-
-            order.receipts.push(newReceipt);
-            await order.save();
-
-            logger.info(`Comprobante subido exitosamente para el pedido ${oid}`);
+            const updatedOrder = await orderService.uploadOrderReceipt(oid, file);
 
             return res.status(200).json({
                 status: 'success',
                 message: 'Comprobante subido y registrado correctamente',
-                payload: order
+                payload: updatedOrder
             });
         } catch (error) {
             next(error);

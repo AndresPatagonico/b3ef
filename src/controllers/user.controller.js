@@ -1,29 +1,30 @@
-import mongoose from 'mongoose';
-import { UserModel } from '../models/user.model.js';
-import { logger } from '../utils/logger.js';
+import { UserService } from '../services/user.service.js';
+
+const userService = new UserService();
 
 export class UserController {
 
     static async getUsers(req, res, next) {
         try {
-            const page = parseInt(req.query.page, 10) || 1;
-            const limit = parseInt(req.query.limit, 10) || 10;
-            const skip = (page - 1) * limit;
+            const rawPage = parseInt(req.query.page, 10) || 1;
+            const rawLimit = parseInt(req.query.limit, 10) || 10;
+            
+            // Sanitización de paginación: límite estrictamente acotado entre 1 y 50
+            const page = Math.max(1, rawPage);
+            const limit = Math.min(Math.max(1, rawLimit), 50);
 
-            const [users, total] = await Promise.all([
-                UserModel.find().skip(skip).limit(limit),
-                UserModel.countDocuments()
-            ]);
+            const result = await userService.getUsers({ page, limit });
+            const docs = Array.isArray(result) ? result : (result.docs || []);
 
             return res.status(200).json({
                 status: 'success',
-                payload: users,
-                pagination: {
-                    total,
-                    page,
-                    totalPages: Math.ceil(total / limit) || 1,
-                    limit
-                }
+                payload: docs,
+                pagination: result.totalPages ? {
+                    total: result.total,
+                    page: result.page,
+                    totalPages: result.totalPages,
+                    limit: result.limit
+                } : undefined
             });
         } catch (error) {
             next(error);
@@ -53,42 +54,13 @@ export class UserController {
                 });
             }
 
-            if (!mongoose.Types.ObjectId.isValid(uid)) {
-                return res.status(400).json({
-                    status: 'error',
-                    error: 'INVALID_ID',
-                    message: 'El ID de usuario provisto no es un ObjectId válido'
-                });
-            }
-
-            const user = await UserModel.findById(uid);
-            if (!user) {
-                return res.status(404).json({
-                    status: 'error',
-                    error: 'USER_NOT_FOUND',
-                    message: 'El usuario especificado no existe'
-                });
-            }
-
-            const newDocument = {
-                name: file.filename,
-                originalName: file.originalname,
-                reference: file.path,
-                mimeType: file.mimetype,
-                size: file.size,
-                docType: docType,
-                uploadedAt: new Date()
-            };
-
-            user.documents.push(newDocument);
-            await user.save();
-
-            logger.info(`Documento '${docType}' subido exitosamente para el usuario ${uid}`);
+            // Delegación del chequeo de ObjectId, persistencia y errores estandarizados al UserService
+            const updatedUser = await userService.uploadUserDocument(uid, file, docType);
 
             return res.status(200).json({
                 status: 'success',
                 message: 'Documento subido y registrado correctamente',
-                payload: user
+                payload: updatedUser
             });
         } catch (error) {
             next(error);

@@ -15,6 +15,8 @@ export const validateEnv = () => {
 export const config = {
     port: process.env.PORT || 8080,
     mongoUri: process.env.MONGODB_URI,
+    mongoUriTest: process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/shipnow_test',
     env: process.env.NODE_ENV || 'development',
-    logLevel: process.env.LOG_LEVEL || 'info'
+    logLevel: process.env.LOG_LEVEL || 'info',
+    maxFileSizeMb: process.env.MAX_FILE_SIZE_MB || 5
 };

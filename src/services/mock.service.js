@@ -13,7 +13,7 @@ export class MockService {
         if (qty === undefined || qty === null || qty === '') {
             return 10;
         }
-        const parsedQty = parseInt(qty);
+        const parsedQty = parseInt(qty, 10);
         if (isNaN(parsedQty) || parsedQty <= 0) {
             CustomError.createError({
                 errorEnum: EErrors.INVALID_PARAM_ERROR,
@@ -93,7 +93,6 @@ export class MockService {
 
             for (let i = 0; i < insertedOrders.length; i++) {
                 const randomOrder = insertedOrders[i];
-                // Si por azar del mock no hay suficientes repartidores DELIVERY, usamos cualquiera o un respaldo
                 const assignedDeliveryMan = deliveryMen.length > 0 
                     ? faker.helpers.arrayElement(deliveryMen) 
                     : faker.helpers.arrayElement(insertedUsers);

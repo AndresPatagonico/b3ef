@@ -13,8 +13,12 @@ RUN npm ci --only=production
 # Copiar el código fuente
 COPY . .
 
-# Crear la carpeta de uploads para evitar fallos de permisos
-RUN mkdir -p uploads/documents uploads/receipts uploads/profiles
+# Crear carpetas de uploads y asignar permisos al usuario node
+RUN mkdir -p uploads/documents uploads/receipts uploads/profiles && \
+    chown -R node:node /app
+
+# Cambiar a usuario sin privilegios por seguridad
+USER node
 
 # Exponer el puerto
 EXPOSE 8080
@@ -22,5 +26,9 @@ EXPOSE 8080
 # Definir la variable de entorno por defecto
 ENV NODE_ENV=production
 
-# Comando para arrancar la aplicación
-CMD ["npm", "start"]
+# Chequeo de salud del contenedor
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/api/health || exit 1
+
+# Comando de inicio del servidor
+CMD ["node", "src/server.js"]

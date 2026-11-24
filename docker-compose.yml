@@ -25,8 +25,8 @@ services:
     environment:
       - PORT=8080
       - NODE_ENV=development
-      - MONGO_URI=mongodb://mongodb:27017/shipnow
       - MONGODB_URI=mongodb://mongodb:27017/shipnow
+      - MONGODB_URI_TEST=mongodb://mongodb:27017/shipnow_test
     depends_on:
       mongodb:
         condition: service_healthy

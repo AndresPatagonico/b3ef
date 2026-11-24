@@ -19,7 +19,7 @@ validateEnv();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Endpoint de Health Check
+// Endpoint de Health Check (Disponible en todos los entornos)
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'healthy',
@@ -29,19 +29,19 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// Swagger disponible únicamente fuera de producción
-if (config.env !== 'production') {
-    setupSwagger(app);
-}
-
-// Registrar las rutas
+// Rutas de Producción
 app.use('/api/products', productRouter);
 app.use('/api/users', userRouter);
-app.use('/api/mocks', mockRouter);
-app.use('/api/loggerTest', loggerRouter);
-app.use('/api', loggerRouter);
 app.use('/api/orders', orderRouter);
 app.use('/api/deliveries', deliveryRouter);
+
+// Rutas e interfaces exclusivas para Desarrollo y Testing (Deshabilitadas en Producción)
+if (config.env !== 'production') {
+    setupSwagger(app);
+    app.use('/api/mocks', mockRouter);
+    app.use('/api/loggerTest', loggerRouter);
+    app.use('/api', loggerRouter);
+}
 
 app.get('/', (req, res) => {
     logger.http('Acceso a ruta raíz /');
