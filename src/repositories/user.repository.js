@@ -4,7 +4,7 @@ export class UserRepository {
     async findAll({ page = 1, limit = 10 } = {}) {
         const skip = (page - 1) * limit;
         const [docs, total] = await Promise.all([
-            UserModel.find().skip(skip).limit(limit),
+            UserModel.find().select('-password').skip(skip).limit(limit),
             UserModel.countDocuments()
         ]);
         return {
@@ -21,7 +21,7 @@ export class UserRepository {
     }
 
     async findById(id) {
-        return await UserModel.findById(id);
+        return await UserModel.findById(id).select('-password');
     }
 
     async create(userData) {

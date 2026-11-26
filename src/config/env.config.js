@@ -18,5 +18,5 @@ export const config = {
     mongoUriTest: process.env.MONGODB_URI_TEST || 'mongodb://localhost:27017/shipnow_test',
     env: process.env.NODE_ENV || 'development',
     logLevel: process.env.LOG_LEVEL || 'info',
-    maxFileSizeMb: process.env.MAX_FILE_SIZE_MB || 5
+    maxFileSizeMb: parseInt(process.env.MAX_FILE_SIZE_MB, 10) || 5
 };

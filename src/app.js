@@ -16,8 +16,9 @@ const app = express();
 
 validateEnv();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Límite estricto de payload JSON y URL-encoded (100kb)
+app.use(express.json({ limit: '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: '100kb' }));
 
 // Endpoint de Health Check (Disponible en todos los entornos)
 app.get('/api/health', (req, res) => {

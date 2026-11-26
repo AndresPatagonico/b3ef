@@ -4,11 +4,12 @@ FROM node:20-alpine
 # Definir directorio de trabajo dentro del contenedor
 WORKDIR /app
 
-# Copiar archivos de dependencias
+# Copiar manifiestos primero para optimizar el caché de capas
 COPY package*.json ./
 
 # Instalar solo dependencias de producción
-RUN npm ci --only=production
+# RUN npm ci --omit=dev
+RUN npm ci
 
 # Copiar el código fuente
 COPY . .

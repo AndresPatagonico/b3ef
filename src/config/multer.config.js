@@ -1,6 +1,7 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { config } from './env.config.js';
 import { logger } from '../utils/logger.js';
 
 const ensureDirectoryExists = (dirPath) => {
@@ -47,6 +48,6 @@ export const upload = multer({
     storage,
     fileFilter,
     limits: {
-        fileSize: 5 * 1024 * 1024 // 5 MB
+        fileSize: config.maxFileSizeMb * 1024 * 1024
     }
 });

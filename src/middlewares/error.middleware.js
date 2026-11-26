@@ -1,7 +1,17 @@
 import { logger } from '../utils/logger.js';
 
 export const errorHandler = (error, req, res, next) => {
-    const statusCode = error.code || 500;
+    // Captura de payload excedido generado por express.json() / body-parser
+    if (error.type === 'entity.too.large' || error.status === 413 || error.statusCode === 413) {
+        logger.error(`Error de cliente [PAYLOAD_TOO_LARGE]: El cuerpo de la petición excede el límite de 100kb`);
+        return res.status(413).json({
+            status: 'error',
+            error: 'PAYLOAD_TOO_LARGE',
+            message: 'El tamaño de la petición excede el límite permitido (máximo 100kb).'
+        });
+    }
+
+    const statusCode = error.code || error.status || error.statusCode || 500;
     const errorName = error.name || 'InternalServerError';
 
     // Clasificación de logs según severidad
